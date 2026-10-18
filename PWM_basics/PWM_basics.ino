@@ -37,12 +37,14 @@ float voltage_dc, voltage;
 
 // PWM setup : signal generator
 const int pwm_pin = 9;
-const unsigned long period = 3000; //us
-const unsigned long serial_period =  1200; // us
-unsigned long last_serial_time = 0;
+const unsigned long half_period = 80000; //us
 const int PWM = 255;
 unsigned long t1, t0 = 0;
 int val = 0;
+
+// serial commnication
+const unsigned long serial_period =  1200; // us
+unsigned long last_serial_time = 0;
 
 
 void setup() {
@@ -101,7 +103,7 @@ if (micros() - last_serial_time >= serial_period) {
 
 void PWM_gen(){
 	  t1 = micros();
-  if ((t1 - t0) >= period) {
+  if ((t1 - t0) >= half_period) {
     t0 = micros();
     if (val == 0)
       val = PWM;
