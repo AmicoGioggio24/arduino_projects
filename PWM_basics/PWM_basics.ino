@@ -33,7 +33,7 @@ unsigned long last_lcd_update = 0;
 
 // Analog input measuring the voltage
 const int DVM_DC = A5, DVM_full = A4;
-float voltage_dc, voltage;
+int voltage_dc, voltage;
 
 // PWM setup : signal generator
 const int pwm_pin = 9;
@@ -76,28 +76,15 @@ void setup() {
 }
 
 void loop() {
-  voltage_dc = analogRead(DVM_DC) ;
-  voltage = analogRead(DVM_full) ;
+  voltage_dc = analogRead(DVM_DC);
+  voltage = analogRead(DVM_full);
   
-  // LCD screen update is periodic for performance
-  if (micros() - last_lcd_update >= lcd_period) {
-    // set the cursor to column 0, line 1
-    // (note: line 1 is the second row, since counting begins with 0):
-    // print the number of seconds since reset:
-    lcd.setCursor(0, 1);
-    lcd.print(voltage_dc * 5/1023, 4);
-    lcd.print(" V");
-    last_lcd_update = micros();
-    }
-
+  // generate ARDUINO output (DIGITAL PIN 9)
   PWM_gen();
-
-if (micros() - last_serial_time >= serial_period) {
-    last_serial_time = micros();
-    Serial.print(voltage_dc);
-    Serial.print(' ');
-    Serial.println(voltage);
-  }
+  // send ARDUINO input signals (ANALOG PIN A5 and A4) 
+  serial_communication(voltage_dc, voltage);
+  // show the DC voltage through the LCD screen
+  show_LCD_Voltage(voltage_dc);
 
 }
 
@@ -112,3 +99,27 @@ void PWM_gen(){
     analogWrite(pwm_pin, val);
   }
 }
+
+void show_LCD_Voltage(int v){
+	// LCD screen update is periodic for performance
+  if (micros() - last_lcd_update >= lcd_period) {
+    // set the cursor to column 0, line 1
+    // (note: line 1 is the second row, since counting begins with 0):
+    // print the number of seconds since reset:
+    lcd.setCursor(0, 1);
+    lcd.print(float(v) * 5/1023, 4);
+    lcd.print(" V");
+    last_lcd_update = micros();
+    }
+}
+
+void serial_communication(int v_dc, int v){
+  if (micros() - last_serial_time >= serial_period) {
+    last_serial_time = micros();
+    Serial.print(v_dc);
+    Serial.print(' ');
+    Serial.println(v);
+  }
+}
+
+
