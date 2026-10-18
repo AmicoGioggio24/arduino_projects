@@ -28,16 +28,16 @@ PWM setup
 const int rs = 12, en = 11, d4 = 5, d5 = 4, d6 = 3, d7 = 2;
 LiquidCrystal lcd(rs, en, d4, d5, d6, d7); 
 // Manual LCD crystal update
-const unsigned long lcd_period = 250 * 1e3; // us
+unsigned long lcd_period = 250 * 1e3; // us
 unsigned long last_lcd_update = 0;
 
 // Analog input measuring the voltage
-const int DVM_DC = A5, DVM_full = A4;
+const int DVM_DC = A5, DVM_full = A4, PM = A3;
 int voltage_dc, voltage;
 
 // PWM setup : signal generator
 const int pwm_pin = 9;
-const unsigned long half_period = 80000; //us
+unsigned long half_period = 20000; //us
 const int PWM = 255;
 unsigned long t1, t0 = 0;
 int val = 0;
@@ -46,6 +46,13 @@ int val = 0;
 const unsigned long serial_period =  1200; // us
 unsigned long last_serial_time = 0;
 
+// sine wave LUT setup: total wave steps
+const int lut_size = 32;
+// Store only the first 8 amplitude offsets from the center (0 to 127)
+const byte quarter_amp[8] = {0, 25, 49, 71, 90, 106, 117, 125};
+int lut_index = 0;
+unsigned long step_period = 40000; // Microseconds per LUT step
+int t3, t2 = 0;
 
 void setup() {
   // set up the LCD's number of columns and rows
@@ -53,9 +60,10 @@ void setup() {
   // print an initial message
   lcd.print("Ciao mbare!");
 
-  // set Analog Pin 5 and 4 as input
+  // set Analog Pin 5, 4, 3 as input
   pinMode(DVM_DC, INPUT);
   pinMode(DVM_full, INPUT);
+  pinMode(PM, INPUT);
   delay(1000);
   lcd.clear();
   lcd.print("Voltmeter (DC) ");
@@ -79,8 +87,10 @@ void loop() {
   voltage_dc = analogRead(DVM_DC);
   voltage = analogRead(DVM_full);
   
+  // check potentiometer for signal's frequency
+  PWM_freq();
   // generate ARDUINO output (DIGITAL PIN 9)
-  PWM_gen();
+  Sine_PWM();
   // send ARDUINO input signals (ANALOG PIN A5 and A4) 
   serial_communication(voltage_dc, voltage);
   // show the DC voltage through the LCD screen
@@ -88,6 +98,9 @@ void loop() {
 
 }
 
+void PWM_freq(){
+  half_period = analogRead(PM)* 1e6/1023 + 5000;
+}
 void PWM_gen(){
 	  t1 = micros();
   if ((t1 - t0) >= half_period) {
@@ -119,6 +132,31 @@ void serial_communication(int v_dc, int v){
     Serial.print(v_dc);
     Serial.print(' ');
     Serial.println(v);
+  }
+}
+
+void Sine_PWM() {
+  t3 = micros();
+  if ((t3 - t2) >= half_period) {
+    t2 = micros();
+    
+    int quadrant = lut_index / 8;  // Determines phase: 0, 1, 2, or 3
+    int step = lut_index % 8;      // Position within the quadrant: 0 to 7
+    int pwm_val = 128;             // Center voltage baseline (~2.5V)
+    
+    // Reconstruct the full wave based on the current quadrant
+    if (quadrant == 0) {
+      pwm_val += quarter_amp[step];           // 0° to 90°: Rising positive
+    } else if (quadrant == 1) {
+      pwm_val += quarter_amp[7 - step];       // 90° to 180°: Falling positive
+    } else if (quadrant == 2) {
+      pwm_val -= quarter_amp[step];           // 180° to 270°: Falling negative
+    } else if (quadrant == 3) {
+      pwm_val -= quarter_amp[7 - step];       // 270° to 360°: Rising negative
+    }
+    
+    analogWrite(pwm_pin, pwm_val);
+    lut_index = (lut_index + 1) % lut_size;
   }
 }
 
