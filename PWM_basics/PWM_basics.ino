@@ -27,18 +27,19 @@ PWM setup
 // initialize the library: associate LCD interface with ARDUINO pin number
 const int rs = 12, en = 11, d4 = 5, d5 = 4, d6 = 3, d7 = 2;
 LiquidCrystal lcd(rs, en, d4, d5, d6, d7); 
+// Manual LCD crystal update
+const unsigned long lcd_period = 250 * 1e3; // us
+unsigned long last_lcd_update = 0;
 
 // Analog input measuring the voltage
 const int DVM_DC = A5, DVM_full = A4;
-const float Vdd = 5.0;
-const float res = 1023;
 float voltage_dc, voltage;
 
 // PWM setup : signal generator
 const int pwm_pin = 9;
-const unsigned long period = 40000; //us
-const int serial_period = 20;
-int last_serial_time = 0;
+const unsigned long period = 3000; //us
+const unsigned long serial_period =  1200; // us
+unsigned long last_serial_time = 0;
 const int PWM = 255;
 unsigned long t1, t0 = 0;
 int val = 0;
@@ -58,22 +59,34 @@ void setup() {
   lcd.print("Voltmeter (DC) ");
 
   //Start the serial communication
-  Serial.begin(9600);
-
+  Serial.begin(115200);
+  // additional delay ensuring Python's connection
+  delay (1000);
+  // Share the serial communication frequency through
+  // the serial port
+  Serial.print("CONNECTION: ");
+  Serial.println(serial_period);
   // PWM setup
   pinMode(pwm_pin, OUTPUT);
   analogWrite(pwm_pin, val);
+
+  
 }
 
 void loop() {
   voltage_dc = analogRead(DVM_DC) ;
   voltage = analogRead(DVM_full) ;
-  // set the cursor to column 0, line 1
-  // (note: line 1 is the second row, since counting begins with 0):
-  // print the number of seconds since reset:
-  lcd.setCursor(0, 1);
-  lcd.print(voltage_dc, 4);
-  lcd.print(" V");
+  
+  // LCD screen update is periodic for performance
+  if (micros() - last_lcd_update >= lcd_period) {
+    // set the cursor to column 0, line 1
+    // (note: line 1 is the second row, since counting begins with 0):
+    // print the number of seconds since reset:
+    lcd.setCursor(0, 1);
+    lcd.print(voltage_dc * 5/1023, 4);
+    lcd.print(" V");
+    last_lcd_update = micros();
+    }
 
   PWM_gen();
 
