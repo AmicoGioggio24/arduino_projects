@@ -36,7 +36,7 @@ float voltage_dc, voltage;
 
 // PWM setup : signal generator
 const int pwm_pin = 9;
-const unsigned long period = 100; //ms
+const unsigned long period = 40000; //us
 const int serial_period = 20;
 int last_serial_time = 0;
 const int PWM = 255;
@@ -66,8 +66,8 @@ void setup() {
 }
 
 void loop() {
-  voltage_dc = analogRead(DVM_DC) * Vdd/res;
-  voltage = analogRead(DVM_full) * Vdd/res;
+  voltage_dc = analogRead(DVM_DC) ;
+  voltage = analogRead(DVM_full) ;
   // set the cursor to column 0, line 1
   // (note: line 1 is the second row, since counting begins with 0):
   // print the number of seconds since reset:
@@ -77,8 +77,8 @@ void loop() {
 
   PWM_gen();
 
-if (millis() - last_serial_time >= serial_period) {
-    last_serial_time = millis();
+if (micros() - last_serial_time >= serial_period) {
+    last_serial_time = micros();
     Serial.print(voltage_dc);
     Serial.print(' ');
     Serial.println(voltage);
@@ -87,9 +87,9 @@ if (millis() - last_serial_time >= serial_period) {
 }
 
 void PWM_gen(){
-	  t1 = millis();
+	  t1 = micros();
   if ((t1 - t0) >= period) {
-    t0 = millis();
+    t0 = micros();
     if (val == 0)
       val = PWM;
     else

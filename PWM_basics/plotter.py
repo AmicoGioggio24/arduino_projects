@@ -10,7 +10,9 @@ is_paused = False
 data_dc = np.zeros((100))
 data = np.zeros((100))
 # sampling frequency for FFT
-Fs = 50.0 # Hz <-> one reading every 20 ms
+Fs = 2000.0 # Hz
+Vdd = 5.0 # V
+res = 1023 # ADC resolution
 
 # --- Window 1: DC Signal ---
 fig1 = plt.figure()
@@ -90,8 +92,9 @@ def readserial(comport, baudrate):
                     #check data length
                     if len(values) == 2:
                         #convert signals: string -> float
-                        dc = float(values[0])
-                        full = float(values[1])
+                        dc = float(values[0]) * (Vdd/res)
+                        full = float(values[1]) * (Vdd/res)
+                        #append new data to the arrays
                         data_dc = np.append(data_dc, dc)
                         data = np.append(data, full) 
                         batch_received = True
@@ -127,9 +130,9 @@ def readserial(comport, baudrate):
                 fig2.canvas.draw()
                 fig3.canvas.draw()
                 
-                fig1.canvas.flush_events()
-                fig2.canvas.flush_events()
-                fig3.canvas.flush_events()
+            fig1.canvas.flush_events()
+            fig2.canvas.flush_events()
+            fig3.canvas.flush_events()
         
         # Prevent the while loop from maxing out your CPU when no data is arriving
         time.sleep(0.005)
