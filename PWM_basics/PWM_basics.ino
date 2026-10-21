@@ -90,7 +90,8 @@ void loop() {
   // check potentiometer for signal's frequency
   PWM_freq();
   // generate ARDUINO output (DIGITAL PIN 9)
-  Sine_PWM();
+  //Sine_PWM();
+  PWM_gen();
   // send ARDUINO input signals (ANALOG PIN A5 and A4) 
   serial_communication(voltage_dc, voltage);
   // show the DC voltage through the LCD screen
